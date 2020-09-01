@@ -83,7 +83,7 @@ public class FourCameraProxy {
     }
 
     public void getAVM360Stat() {
-        CameraBean bean = new CameraBean(CAMERA_ACTION_NODE, Config.MODE_WWC2_DISPLAY,7);
+        CameraBean bean = new CameraBean(CAMERA_ACTION_NODE, Config.MODE_WWC2_DISPLAY,8);
         bean.Action();
     }
 

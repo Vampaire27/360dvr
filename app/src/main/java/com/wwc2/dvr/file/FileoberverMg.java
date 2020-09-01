@@ -6,6 +6,7 @@ import android.util.Log;
 import com.wwc2.dvr.room.FileInfo;
 import com.wwc2.dvr.room.FileRepository;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +16,8 @@ public class FileoberverMg implements MultiFileObserver.FileListener {
 
     private String TAG = "FileoberverMg";
     private FileRepository mFileRepository;
+
+    private final String DVR_DIR = "DCIM/Camera/";
 
     /**
      * the nand flash storage device.
@@ -36,12 +39,12 @@ public class FileoberverMg implements MultiFileObserver.FileListener {
 
     public FileoberverMg( FileRepository fileRepository) {
         mFileRepository = fileRepository;
-        mObserverDir.put(NAND_FLASH, "/storage/emulated/0/DCIM/");
-        mObserverDir.put(MEDIA_CARD, "/storage/sdcard1/DCIM/");
-        mObserverDir.put(MEDIA_USB, "/storage/usbotg/DCIM/");
-        mObserverDir.put(MEDIA_USB1, "/storage/usbotg1/DCIM/");
-        mObserverDir.put(MEDIA_USB2, "/storage/usbotg2/DCIM/");
-        mObserverDir.put(MEDIA_USB3, "/storage/usbotg3/DCIM/");
+        mObserverDir.put(NAND_FLASH, "/storage/emulated/0/" + DVR_DIR);
+        mObserverDir.put(MEDIA_CARD, "/storage/sdcard1/" + DVR_DIR );
+        mObserverDir.put(MEDIA_USB, "/storage/usbotg/" + DVR_DIR );
+        mObserverDir.put(MEDIA_USB1, "/storage/usbotg1/" + DVR_DIR );
+        mObserverDir.put(MEDIA_USB2, "/storage/usbotg2/" + DVR_DIR);
+        mObserverDir.put(MEDIA_USB3, "/storage/usbotg3/" + DVR_DIR);
         Log.i(TAG, "FileoberverMg....");
     }
 
@@ -51,7 +54,13 @@ public class FileoberverMg implements MultiFileObserver.FileListener {
         for(int i = 0; i< mObserverDir.size(); i ++ ){
             multiFileObserver =new MultiFileObserver(i, mObserverDir.get(i)/*getVideoDir(location)*/,
                     FileObserver.DELETE | FileObserver.CREATE | FileObserver.DELETE_SELF );
+
             multiFileObserver.setFileListener(this);
+            Log.i(TAG, "startWatching....path =" +mObserverDir.get(i));
+            File file = new File(mObserverDir.get(i));
+            if(!file.exists()){
+                file.mkdir();
+            }
             multiFileObserver.startWatching();
             mMultiFileObserverList.add(multiFileObserver);
         }

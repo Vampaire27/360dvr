@@ -71,9 +71,9 @@ public class CarDvrImpl extends IWCarDvr.Stub {
         Log.d(TAG ,"CarDvrImpl---getAllDriveFontVideo fromType=" + ", pageNum-->" + pageNum + "    pageSize-->" + pageSize);
         Gson gson=new Gson();
 
-        List<FileInfo> all = recordService.getFileRepository().getAllWords();
+        int size = recordService.getFileRepository().getSize();
 
-        if(all == null || all.size() ==0){
+        if(size == 0){
             return null;
         }
 
@@ -89,7 +89,7 @@ public class CarDvrImpl extends IWCarDvr.Stub {
             mDriveVideoBean.setName( file.getName().substring(file.getName().lastIndexOf("/")).replaceAll("/",""));
             mDriveVideoBeanList.add(mDriveVideoBean);
         }
-        fontVideoBean.setTotal(all.size());
+        fontVideoBean.setTotal(size);
         fontVideoBean.setList(mDriveVideoBeanList);
 
         String fontJson =  gson.toJson(fontVideoBean);
