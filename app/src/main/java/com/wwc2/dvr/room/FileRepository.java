@@ -37,9 +37,9 @@ public class FileRepository {
         });
     }
 
-    public void delete(String path) {
+    public void delete(String name) {
         FileInfoDatabase.databaseWriteExecutor.execute(() -> {
-            mFileInfoDao.deletePath(path);
+            mFileInfoDao.deletePath(name);
         });
     }
 
@@ -48,5 +48,12 @@ public class FileRepository {
            return mFileInfoDao.getFileInfo(start,size);
        // });
     }
+
+    public void deleteDevice(String path) {
+        FileInfoDatabase.databaseWriteExecutor.execute(() -> {
+            mFileInfoDao.deleteDevice(path);
+        });
+    }
+
 
 }

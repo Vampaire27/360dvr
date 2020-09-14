@@ -55,6 +55,10 @@ public interface FileInfoDao {
     @Query("DELETE FROM FileInfo")
     void deleteAll();
 
-    @Query("DELETE from FileInfo Where name == :name ")
+    @Query("DELETE from FileInfo Where name == :name")
     void deletePath(String name);
+
+    @Query("DELETE from FileInfo Where path == :path")
+    void deleteDevice(String path);
+
 }

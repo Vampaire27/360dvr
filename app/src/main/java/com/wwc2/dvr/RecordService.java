@@ -1,8 +1,11 @@
 package com.wwc2.dvr;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
@@ -15,6 +18,7 @@ import com.wwc2.dvr.fourCamera.FourCameraProxy;
 import androidx.annotation.Nullable;
 
 import com.wwc2.dvr.room.FileRepository;
+import com.wwc2.dvr.utils.StorageDevice;
 
 public class RecordService extends Service {
     private static final String TAG = "RecordService";
@@ -35,9 +39,22 @@ public class RecordService extends Service {
 
         mFileRepository = new FileRepository(getApplication());
 
-        mFileoberverMg = new FileoberverMg(mFileRepository);
+        mFileoberverMg = new FileoberverMg(mFileRepository,RecordService.this);
         mFileoberverMg.startWatching();
+        RegisterReceiver();
     }
+
+
+    private void RegisterReceiver(){
+        IntentFilter deviceFilter = new IntentFilter();
+        deviceFilter.addAction(Intent.ACTION_MEDIA_EJECT);
+        deviceFilter.addAction(Intent.ACTION_MEDIA_MOUNTED);
+        deviceFilter.addAction(Intent.ACTION_MEDIA_CHECKING);
+        deviceFilter.addAction(Intent.ACTION_MEDIA_BAD_REMOVAL);
+        deviceFilter.addDataScheme("file");
+        registerReceiver(mDeviceReceiver, deviceFilter);
+    }
+
 
     @Nullable
     @Override
@@ -112,4 +129,42 @@ public class RecordService extends Service {
         return ret;
     }
 
+
+   private BroadcastReceiver mDeviceReceiver = new BroadcastReceiver() {
+    @Override
+     public void onReceive(Context context, Intent intent) {
+        String action = intent.getAction();
+        String path = intent.getData().getPath() + "/";
+
+        Log.d(TAG,"DeviceReceiver---action=" + action  + ", path=" + path);
+
+
+            if (Intent.ACTION_MEDIA_EJECT.equals(action) ||
+                    Intent.ACTION_MEDIA_BAD_REMOVAL.equals(action)) {
+                int type = StorageDevice.parseFileOrDirName(context, path);
+                if(type == StorageDevice.MEDIA_CARD){
+                    mFileoberverMg.removeDevice(StorageDevice.getPath(type));
+                }else{
+                    mFileoberverMg.removeDevice(path);
+                }
+
+            } else if (Intent.ACTION_MEDIA_MOUNTED.equals(action)) {
+                int type = StorageDevice.parseFileOrDirName(context, path);
+                if(type == StorageDevice.MEDIA_CARD) {
+                    mFileoberverMg.updateFileDB(StorageDevice.getPath(type));
+                }else{
+                    mFileoberverMg.updateFileDB(path);
+                }
+            } else if (Intent.ACTION_MEDIA_CHECKING.equals(action)) {
+                // 正在检测 暂不作处理
+            }
+        }
+
+     };
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(mDeviceReceiver);
+    }
 }
