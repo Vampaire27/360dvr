@@ -24,8 +24,8 @@ android {
         applicationId "com.wwc2.dvr"
         minSdkVersion 27
         targetSdkVersion 29
-        versionCode 1003
-        versionName "1.00.3"
+        versionCode 1004
+        versionName "1.00.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

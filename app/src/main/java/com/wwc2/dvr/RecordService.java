@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.SystemProperties;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.wwc2.dvr.file.FileoberverMg;
@@ -18,13 +19,19 @@ import com.wwc2.dvr.fourCamera.FourCameraProxy;
 import androidx.annotation.Nullable;
 
 import com.wwc2.dvr.room.FileRepository;
+import com.wwc2.dvr.utils.AppConfig;
+import com.wwc2.dvr.utils.Config;
 import com.wwc2.dvr.utils.StorageDevice;
+import com.wwc2.dvr.utils.Utils;
 
 public class RecordService extends Service {
     private static final String TAG = "RecordService";
 
     public static final String AUTHORITY = "com.wwc2.main.provider.logic";
     public static final String ACC_STATUS = "acc_status";
+
+    private Uri caruri = Uri.parse("content://wwc2.server.provider.carinfo/sensor");
+
     private Binder mBinder;
     private FourCameraProxy mFourCameraProxy;
     private  FileRepository mFileRepository;
@@ -42,6 +49,7 @@ public class RecordService extends Service {
         mFileoberverMg = new FileoberverMg(mFileRepository,RecordService.this);
         mFileoberverMg.startWatching();
         RegisterReceiver();
+        init();
     }
 
 
@@ -167,4 +175,44 @@ public class RecordService extends Service {
         super.onDestroy();
         unregisterReceiver(mDeviceReceiver);
     }
+
+    public void updateSensor() {
+
+        String serial = getContentResolver().getType(caruri);
+        Log.d(TAG, "updateSensor...serial=" + serial);
+        if (!TextUtils.isEmpty(serial)) {
+            int sensor = 0;
+            try {
+                sensor = Integer.parseInt(serial);
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            }
+            switch (sensor) {
+                case 0:
+                    sensor = Config.SENSOR_CLOSE;
+                    break;
+                case 1:
+                    sensor = Config.SENSOR_KEY_1;
+                    break;
+                case 2:
+                    sensor = Config.SENSOR_KEY_2;
+                    break;
+                case 3:
+                    sensor = Config.SENSOR_KEY_3;
+                    break;
+            }
+//            SPUtils.setSensor(getContext(), sensor);
+//            RecordData.getInstance().sensor.postValue(sensor);
+            AppConfig.getInstance().putInt(RecordService.this,AppConfig.KEY_SENSOR,sensor);
+            Utils.writeTextFile(sensor + "", Config.SENSOR_NODE);
+
+        }
+    }
+
+
+    private void init(){
+        int value =  AppConfig.getInstance().getIntValue(RecordService.this, AppConfig.KEY_SENSOR, Config.SENSOR_CLOSE);
+        Utils.writeTextFile(value + "", Config.SENSOR_NODE);
+    }
+
 }

@@ -127,7 +127,7 @@ public class CarDvrImpl extends IWCarDvr.Stub {
 
     @Override
     public void updateSensor() throws RemoteException {
-
+        recordService.updateSensor();
     }
 
     @Override
