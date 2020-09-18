@@ -1,0 +1,174 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <cutils/log.h>
+#include <cutils/sockets.h>
+#include <cutils/properties.h>
+#include <unistd.h>
+#include <sys/types.h> 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/un.h>
+#include <sys/mman.h>
+
+#define H264_STREAM_SOCKET_NAME			"h264StreamSocket"
+#define SHARE_MEMORY_FILE				"/sdcard/.h264Stream"
+#define H264_FILE_NAME					"/sdcard/stream.h264"
+
+#define H264_STREAM_SOCKET_FRONT_NAME	"h264StreamFrontSocket"
+#define H264_STREAM_SOCKET_BACK_NAME	"h264StreamBackSocket"
+#define H264_STREAM_SOCKET_LEFT_NAME	"h264StreamLeftSocket"
+#define H264_STREAM_SOCKET_RIGHT_NAME	"h264StreamRightSocket"
+
+#define SHARE_MEMORY_FRONT_FILE			"/sdcard/.h264StreamFront"
+#define SHARE_MEMORY_BACK_FILE			"/sdcard/.h264StreamBack"
+#define SHARE_MEMORY_LEFT_FILE			"/sdcard/.h264StreamLeft"
+#define SHARE_MEMORY_RIGHT_FILE			"/sdcard/.h264StreamRight"
+
+#define H264_FILE_FRONT_NAME			"/sdcard/streamFront.h264"
+#define H264_FILE_BACK_NAME				"/sdcard/streamBack.h264"
+#define H264_FILE_LEFT_NAME				"/sdcard/streamLeft.h264"
+#define H264_FILE_RIGHT_NAME			"/sdcard/streamRight.h264"
+
+
+int main(int argc, char *argv[])
+{ 
+    int sockfd = -1;
+    unsigned sendData = 0xff;
+	int count = 0;
+	unsigned char size[4] = {0};
+	unsigned int streamSize = 0;
+	int shmFd = -1;
+	unsigned char* shm = NULL;
+	int readRet = 0;
+	unsigned int alreadRecvSize = 0;
+	char socketName[32] = {0};
+	char shareFileName[32] = {0};
+	char saveFileName[32] = {0};
+	int cameraId = 0;
+
+	if(argc != 2)
+		return -1;
+
+	cameraId = atoi(argv[1]);
+	switch(cameraId)
+	{
+		case 1:
+			sprintf(socketName, H264_STREAM_SOCKET_FRONT_NAME);
+			sprintf(shareFileName, SHARE_MEMORY_FRONT_FILE);
+			sprintf(saveFileName, H264_FILE_FRONT_NAME);
+			break;
+
+		case 2:
+			sprintf(socketName, H264_STREAM_SOCKET_BACK_NAME);
+			sprintf(shareFileName, SHARE_MEMORY_BACK_FILE);
+			sprintf(saveFileName, H264_FILE_BACK_NAME);
+			break;
+
+		case 3:
+			sprintf(socketName, H264_STREAM_SOCKET_LEFT_NAME);
+			sprintf(shareFileName, SHARE_MEMORY_LEFT_FILE);
+			sprintf(saveFileName, H264_FILE_LEFT_NAME);
+			break;
+
+		case 4:
+			sprintf(socketName, H264_STREAM_SOCKET_RIGHT_NAME);
+			sprintf(shareFileName, SHARE_MEMORY_RIGHT_FILE);
+			sprintf(saveFileName, H264_FILE_RIGHT_NAME);
+			break;
+
+		case 5:
+			sprintf(socketName, H264_STREAM_SOCKET_NAME);
+			sprintf(shareFileName, SHARE_MEMORY_FILE);
+			sprintf(saveFileName, H264_FILE_NAME);
+			break;
+
+		default:
+			break;
+	}
+
+	
+	FILE *fp = fopen(saveFileName, "wb");
+  
+	sockfd = socket_local_client(socketName, ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
+	ALOGD("bbl--socket test sockfd = %d",sockfd);
+  
+    if(sockfd < 0)  
+    {  
+		//close(sockfd);
+        ALOGE("bbl--ops:client");
+		return 1;
+    }  
+ 
+	sendData = (unsigned char)count;
+    write(sockfd, &sendData, 1);
+	count++;
+
+	while(1)
+	{
+		readRet = read(sockfd, size+alreadRecvSize, 4-alreadRecvSize);
+		alreadRecvSize += readRet;
+		if(alreadRecvSize == 4)
+			break;
+	}
+
+	streamSize = (unsigned int)(size[3] << 24);
+	streamSize |= (unsigned int)(size[2] << 16);
+	streamSize |= (unsigned int)(size[1] << 8);
+	streamSize |= (unsigned int)(size[0]);
+	ALOGD("bbl--test %d: %d", count, streamSize);
+
+	shmFd = open(shareFileName, O_RDWR, 0666);
+	ALOGD("bbl--test shmfd = %d",shmFd);
+
+	shm = (unsigned char*)mmap(NULL, 102400, (PROT_READ|PROT_WRITE), MAP_SHARED, shmFd, 0);
+	close(shmFd);
+	ALOGD("bbl--test shm = 0x%x",shm);
+
+
+	if(fp != NULL)
+	{
+		printf("%d:%x %x %x %x %x\n", count, *shm, *(shm+1), *(shm+2), *(shm+3), *(shm+4));
+		fwrite(shm, streamSize, 1,fp);
+	}
+	sendData = (unsigned char)count;
+	write(sockfd, &sendData, 1);
+	count++;
+
+	while(count < 256)
+	{
+		
+		alreadRecvSize = 0;
+		while(1)
+		{
+			readRet = read(sockfd, size+alreadRecvSize, 4-alreadRecvSize);
+			alreadRecvSize += readRet;
+			if(alreadRecvSize == 4)
+				break;
+		}
+		streamSize = (unsigned int)(size[3] << 24);
+		streamSize |= (unsigned int)(size[2] << 16);
+		streamSize |= (unsigned int)(size[1] << 8);
+		streamSize |= (unsigned int)(size[0]);
+		ALOGD("bbl--test--%d-%d: %d", cameraId, count, streamSize);
+
+
+		if(fp != NULL)
+		{
+			printf("%d:%x %x %x %x %x\n", count, *shm, *(shm+1), *(shm+2), *(shm+3), *(shm+4));
+			fwrite(shm, streamSize, 1,fp);
+		}
+		//usleep(100000);
+		sendData = (unsigned char)count;
+	    write(sockfd, &sendData, 1);
+		count++;
+	}
+
+	fflush(fp);
+	fclose(fp);
+	munmap(shm, 102400);
+    close(sockfd);
+
+	return 0;
+}

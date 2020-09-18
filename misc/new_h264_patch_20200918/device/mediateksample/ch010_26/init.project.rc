@@ -1,0 +1,170 @@
+# MTK project .rc configure
+
+import init.mt6765.usb.rc
+
+#zhongyang.hu add for usbotg1
+on init
+    mkdir /mnt/media_rw/usbotg 0700 media_rw media_rw
+    mkdir /storage/usbotg 0700 root root
+    mkdir /mnt/media_rw/usbotg1 0700 media_rw media_rw
+    mkdir /storage/usbotg1 0700 root root
+    mkdir /mnt/media_rw/usbotg2 0700 media_rw media_rw
+    mkdir /storage/usbotg2 0700 root root 
+    mkdir /mnt/media_rw/usbotg3 0700 media_rw media_rw
+    mkdir /storage/usbotg3 0700 root root 
+
+on post-fs-data
+    #begin zhongyang.hu add for ec 20171220
+    chmod 6755 /system/bin/adb-ec
+    chmod 6755 /system/bin/adb-ec-server.sh
+    #end zhongyang.hu add for ec 20171220
+    chmod 6755 /system/bin/jbset
+
+#Camera
+    chmod 0660 /dev/MAINAF
+    chown system camera /dev/MAINAF
+
+    chmod 0660 /dev/MAINAF2
+    chown system camera /dev/MAINAF2
+
+    chmod 0660 /dev/SUBAF
+    chown system camera /dev/SUBAF
+
+    chmod 0660 /dev/GAF001AF
+    chown system camera /dev/GAF001AF
+
+    chmod 0660 /dev/DW9714AF
+    chown system camera /dev/DW9714AF
+
+    chmod 0660 /dev/LC898212AF
+    chown system camera /dev/LC898212AF
+
+    chmod 0660 /dev/BU64745GWZAF
+    chown system camera /dev/BU64745GWZAF
+
+	chmod 0666 /dev/wwc2_camera_combine
+	chown system system /dev/wwc2_camera_combine
+
+	chmod 0666 /dev/wwc2_yuv_sync
+	chown system system /dev/wwc2_yuv_sync
+
+	chmod 0666 /dev/wwc2_hsf_sync
+	chown system system /dev/wwc2_hsf_sync
+
+	chmod 0666 /dev/wwc2_hsb_sync
+	chown system system /dev/wwc2_hsb_sync
+
+	chmod 0666 /dev/wwc2_hsl_sync
+	chown system system /dev/wwc2_hsl_sync
+
+	chmod 0666 /dev/wwc2_hsr_sync
+	chown system system /dev/wwc2_hsr_sync
+
+	chmod 0666 /dev/wwc2_hsq_sync
+	chown system system /dev/wwc2_hsq_sync
+
+	chmod 0666 /sys/devices/platform/wwc2_camera_combine/camera_action
+	chown system system /sys/devices/platform/wwc2_camera_combine/camera_action
+
+	chmod 0666 /sys/devices/platform/wwc2_camera_combine/record_status
+	chown system system /sys/devices/platform/wwc2_camera_combine/record_status
+
+	chmod 0666 /sys/devices/platform/wwc2_camera_combine/record_four_status
+	chown system system /sys/devices/platform/wwc2_camera_combine/record_four_status
+
+	chmod 0666 /sys/devices/platform/wwc2_camera_combine/record_latency
+	chown system system /sys/devices/platform/wwc2_camera_combine/record_latency
+
+	chmod 0666 /sys/devices/platform/wwc2_camera_combine/camera_param
+	chown system system /sys/devices/platform/wwc2_camera_combine/camera_param
+
+	chmod 0666 /sys/devices/platform/wwc2_camera_combine/display_mode
+	chown system system /sys/devices/platform/wwc2_camera_combine/display_mode
+
+	chmod 0666 /sys/devices/platform/wwc2_camera_combine/ic_param
+	chown system system /sys/devices/platform/wwc2_camera_combine/ic_param
+
+	chmod 0666 /sys/devices/platform/wwc2_camera_combine/capture_file
+	chown system system /sys/devices/platform/wwc2_camera_combine/capture_file
+
+	chmod 0666 /sys/devices/platform/wwc2_camera_combine/card_data
+	chown system system /sys/devices/platform/wwc2_camera_combine/card_data
+
+	chmod 0666 /sys/devices/platform/wwc2_camera_combine/gps_data
+	chown system system /sys/devices/platform/wwc2_camera_combine/gps_data
+#SMB
+    chown system system /proc/smb/ScreenComm
+    chmod 0660 /proc/smb/ScreenComm
+
+    chmod 0660 /dev/spm
+    chown system system /dev/spm
+
+
+on init
+    # Refer to http://source.android.com/devices/tech/storage/index.html
+    # It said, "Starting in Android 4.4, multiple external storage devices are surfaced to developers through
+    #           Context.getExternalFilesDirs(), Context.getExternalCacheDirs(), and Context.getObbDirs().
+    #           External storage devices surfaced through these APIs must be a semi-permanent part of the device (such as an SD card slot in a battery compartment).
+    #           Developers expect data stored in these locations to be available over long periods of time."
+    # Therefore, if the target doesn't support sd hot-plugging (Ex: the SD card slot in a battery compartment), we need to export SECONDARY_STORAGE in 'boot' section
+    #
+    # export SECONDARY_STORAGE /storage/sdcard1
+
+service fuse_usbotg /system/bin/sdcard -u 1023 -g 1023 -w 1023 -d /mnt/media_rw/usbotg /storage/usbotg
+    class late_start
+    disabled
+
+service spm_script /vendor/bin/spm_loader
+    user system
+    group system
+    class core
+    oneshot
+
+# start remosaic_daemon
+on property:sys.boot_completed=1
+    start remosaic_daemon
+
+#zhongyang.hu add for usbotg1
+service fuse_usbotg1 /system/bin/sdcard -u 1023 -g 1023 -w 1023 -d /mnt/media_rw/usbotg1 /storage/usbotg1
+    class late_start
+    disabled
+
+service fuse_usbotg2 /system/bin/sdcard -u 1023 -g 1023 -w 1023 -d /mnt/media_rw/usbotg2 /storage/usbotg2
+    class late_start
+    disabled
+
+service fuse_usbotg3 /system/bin/sdcard -u 1023 -g 1023 -w 1023 -d /mnt/media_rw/usbotg3 /storage/usbotg3
+    class late_start
+    disabled
+
+service remosaic_daemon /vendor/bin/remosaic_daemon
+    class core
+    user system
+    group system
+    oneshot
+    disabled
+
+#begin zhongyang.hu add for ec 20171220
+service adbec /system/bin/adb-ec-server.sh
+    class core
+    disabled
+    oneshot
+  
+on property:service.adbec.enable=1
+    start adbec
+
+service adbusbmuxd /system/bin/start_usbmuxd.sh
+    class core
+    disabled
+    oneshot
+
+on property:service.adbusbmuxd.enable=1
+    start adbusbmuxd
+
+on property:sys.boot_completed=1
+    mkdir /data/.android 0777 system system
+    export HOME /data
+    setprop service.adbec.enable 1
+    setprop service.adbusbmuxd.enable 1
+#end
+
